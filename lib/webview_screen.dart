@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
@@ -10,6 +10,13 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class ProgressState {
+  final int progress;
+  final int contentLength;
+
+  ProgressState(this.progress, this.contentLength);
+}
 
 class WebviewScreen extends StatefulWidget {
   const WebviewScreen({super.key});
@@ -27,6 +34,8 @@ class _WebviewScreenState extends State<WebviewScreen> {
   String _url = 'https://unsplash.com/images';
   // String _url = 'https://testfiledownload.com';
 
+  final StreamController progressController = StreamController<ProgressState>();
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +46,7 @@ class _WebviewScreenState extends State<WebviewScreen> {
       // DownloadTaskStatus status = DownloadTaskStatus(data[1]);
       int progress = data[2];
       log('progress: $data');
+      progressController.sink.add(ProgressState(progress, 0));
     });
 
     FlutterDownloader.registerCallback(downloadCallback);
@@ -73,6 +83,21 @@ class _WebviewScreenState extends State<WebviewScreen> {
             child: Center(
       child: Column(
         children: [
+          Container(
+            color: Colors.red,
+            width: MediaQuery.of(context).size.width,
+            alignment: Alignment.center,
+            height: 60,
+            padding: EdgeInsets.all(10),
+            child: StreamBuilder(
+                stream: progressController.stream,
+                builder: (context, snapchot) => (snapchot.data == null)
+                    ? SizedBox.shrink()
+                    : Text(
+                        snapchot.data.progress.toString(),
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      )),
+          ),
           Expanded(
             child: InAppWebView(
               key: _webViewKey,
